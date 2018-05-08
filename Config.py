@@ -1,20 +1,20 @@
-from main import TableInfo
+from table_ifno import TableInfo
 
 
 class Config:
-    REQUEST_TABLES = [ TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 2, 0, 1, 10),
-               TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 4, 0, 1, 10),
-               TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 7, 0, 1, 10)
-            ]
+    REQUEST_TABLES_WITH_CRITERION = [{"data_table_info": TableInfo(r"Элементы СКС_для_Жени.xlsx", "KVM консоли", 0, 1), "criterion_file_path": r"Criterion for KVM консоли.txt"},
+                                     {"data_table_info": TableInfo(r"Элементы СКС_для_Жени.xlsx", "Оптические кроссы", 0, 1), "criterion_file_path": r"Criterion for Оптические кроссы.txt"},
+                                     {"data_table_info": TableInfo(r"Элементы СКС_для_Жени.xlsx", "Сплайс кассеты", 0, 10), "criterion_file_path": r"Criterion for Сплайс кассеты"},
+                                    ]
     WEIGHTED_SUM_TABLES = [
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 0, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 1, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 3, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 5, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 6, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 8, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 9, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 10, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 11, 0, 1, 10),
-        TableInfo(r"C:\Users\User\Downloads\Элементы СКС_формат_09.04_2.xlsx", 12, 0, 1, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "ВОЛС", 0, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "Адаптерные панели", 0, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "Шнуры ВОЛС", 0, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "Коннекторы", 0, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "Межсетевые экраны", 0, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "ИБП", 0, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "Коммутаторы", 0, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "Блок розеток", 0, 10),
+        TableInfo(r"Элементы СКС_для_Жени.xlsx", "Серверы", 0, 10),
+        # TableInfo(r"Элементы СКС_для_Жени.xlsx", 12, 0, 10),
     ]
