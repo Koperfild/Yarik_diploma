@@ -2,7 +2,7 @@ from table_ifno import TableInfo
 
 
 class Config:
-    REQUEST_TABLES_WITH_CRITERION = [{"data_table_info": TableInfo(r"Элементы СКС_для_Жени.xlsx", "KVM консоли", 0, 1), "criterion_file_path": r"Criterion for KVM консоли.txt"},
+    REQUEST_TABLES_WITH_CRITERION = [{"data_table_info": TableInfo(r"Элементы СКС_для_Жени.xls", "KVM консоли", 0, 1), "criterion_file_path": r"Criterion for KVM консоли.txt"},
                                      {"data_table_info": TableInfo(r"Элементы СКС_для_Жени.xlsx", "Оптические кроссы", 0, 1), "criterion_file_path": r"Criterion for Оптические кроссы.txt"},
                                      {"data_table_info": TableInfo(r"Элементы СКС_для_Жени.xlsx", "Сплайс кассеты", 0, 10), "criterion_file_path": r"Criterion for Сплайс кассеты"},
                                     ]

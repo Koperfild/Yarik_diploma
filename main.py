@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 import requests
 import xlrd
 from abc import abstractmethod
@@ -35,7 +37,7 @@ class TableProcessor:
     def _get_excel_sheet(table_info):
         sheet = TableProcessor.table_info_to_sheet.get(table_info)
         if sheet is None:
-            excel_data_file = xlrd.open_workbook(table_info.file_path)
+            excel_data_file = xlrd.open_workbook(table_info.file_path, formatting_info=True)
             sheet = excel_data_file.sheet_by_name(table_info.sheet_name)
             if sheet.ragged_rows:
                 raise IncorrectTableInputError("Ragged table in sheet {} in file {}".format(table_info.sheet_name, table_info.file_path))
@@ -111,7 +113,8 @@ class TableProcessor:
 
         header = TableProcessor.get_header(table_info)
         rows = TableProcessor.get_all_data_rows(table_info)
-
+        #DELETE: this is only for test
+        rows = rows[:1]
         #TODO: check the structure of alternatives. THe 1st column can be special or not
 
         result = []
@@ -124,6 +127,8 @@ class TableProcessor:
                 #adding index of each field and its value with escaped quotes if there are
                 #res_row[row[0].value].update({column: str(row[index].value).replace('"', r'\"')})
                 #DELETE: prev line replaced with this
+                #Delete: column_value = int(row[index]) if row[index].ctype == 2 and excel_data_file.format_map[excel_data_file.xf_list[excel_data_file.sheet_by_name(table_info.sheet_name).cell(1,9).xf_index].format_key]
+
                 res_row[row[0].value].update({column: row[index].value})
             result.append(res_row)
         return result
@@ -158,7 +163,7 @@ class CriterionRequestValueProcessor(CriterionProcessor):
 
 
         request_json_dict = {}
-        with open(self.criterion_file_path, 'r') as criterion_file:
+        with open(self.criterion_file_path, 'r', encoding="utf8") as criterion_file:
             request_json_dict = json.load(criterion_file)
         request_json_dict.update({RequestKeys.ALTERNATIVES : alternatives})
 
@@ -300,7 +305,11 @@ class CriterionWorker:
 if __name__ == '__main__':
     criterion_values = []
 
-
+    for table_and_criterion in Config.REQUEST_TABLES_WITH_CRITERION:
+        table_info = table_and_criterion.get("data_table_info")
+        criterion_file_path = table_and_criterion.get("criterion_file_path")
+        processor = CriterionRequestValueProcessor(criterion_file_path, table_info)
+        criterion_values.append(processor.get_criterion_values())
 
     for table_info in Config.WEIGHTED_SUM_TABLES:
         processor = WeightedCriterionProcessor(table_info)
@@ -310,12 +319,6 @@ if __name__ == '__main__':
     # CriterionWorker().get_criterion_sums_lower()
     #CriterionWorker().get_all_criterions_sums(criterion_values)
     max_sum = CriterionWorker().find_max_criterions_sum(criterion_values)
-
-    for table_and_criterion in Config.REQUEST_TABLES_WITH_CRITERION:
-        table_info = table_and_criterion.get("data_table_info")
-        criterion_file_path = table_and_criterion.get("criterion_file_path")
-        processor = CriterionRequestValueProcessor(criterion_file_path, table_info)
-        criterion_values.append(processor.get_criterion_values())
 
 
 
