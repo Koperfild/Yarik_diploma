@@ -8,6 +8,7 @@ from Config import Config
 import os
 from functools import reduce
 from table_info import TableInfo
+import result_writer
 
 URL = "http://ws-dss.com/ws_jobs/3522.json"
 USER_TOKEN = "R1_bjpEvykBQfeBCyBky"
@@ -361,16 +362,19 @@ class CriterionWorker:
 
 if __name__ == '__main__':
     criterion_values = []
+    table_names = []
 
     for table_info in Config.WEIGHTED_SUM_TABLES:
         processor = WeightedCriterionProcessor(table_info)
         criterion_values.append(processor.get_criterion_values())
+        table_names.append(table_info.sheet_name)
 
     for table_and_criterion in Config.REQUEST_TABLES_WITH_CRITERION:
         table_info = table_and_criterion.get("data_table_info")
         criterion_file_path = table_and_criterion.get("criterion_file_path")
         processor = CriterionRequestValueProcessor(criterion_file_path, table_info)
         criterion_values.append(processor.get_criterion_values())
+        table_names.append(table_info.sheet_name)
 
 
 
@@ -379,6 +383,7 @@ if __name__ == '__main__':
     result = CriterionWorker().get_criterion_sums_lower_last(criterion_values, 3, 80)
     # CriterionWorker().get_all_criterions_sums(criterion_values)
     # max_sum = CriterionWorker().find_max_criterions_sum(criterion_values)
+    result_writer.ResultWriter.write_to_excel(table_names, result)
     print("The End.")
 
 
