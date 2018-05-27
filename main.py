@@ -6,11 +6,10 @@ from abc import abstractmethod
 import json
 from Config import Config
 import os
-import re
 from functools import reduce
-from table_ifno import TableInfo
+from table_info import TableInfo
 
-URL = "http://ws-dss.com/ws_jobs.json"
+URL = "http://ws-dss.com/ws_jobs/3522.json"
 USER_TOKEN = "R1_bjpEvykBQfeBCyBky"
 
 class RequestKeys:
@@ -37,7 +36,7 @@ class TableProcessor:
     def _get_excel_sheet(table_info):
         sheet = TableProcessor.table_info_to_sheet.get(table_info)
         if sheet is None:
-            excel_data_file = xlrd.open_workbook(table_info.file_path, formatting_info=True)
+            excel_data_file = xlrd.open_workbook(table_info.file_path)#DELETE: , formatting_info=True)
             sheet = excel_data_file.sheet_by_name(table_info.sheet_name)
             if sheet.ragged_rows:
                 raise IncorrectTableInputError("Ragged table in sheet {} in file {}".format(table_info.sheet_name, table_info.file_path))
@@ -108,15 +107,11 @@ class TableProcessor:
         """
         creates dictionary from header as keys and rows as values of these keys
         return: list of tuples, in tuple: 1st is 0th value in excel row, i.e. Name,  characteristics as { char_name: value,..}
-        #TODO: remake all usages to dict  { row[0] : { row[1]:value1, row[2]:value2 } }, where row[0] is 0th column with name
         """
-
         header = TableProcessor.get_header(table_info)
         rows = TableProcessor.get_all_data_rows(table_info)
         #DELETE: this is only for test
-        rows = rows[:1]
-        #TODO: check the structure of alternatives. THe 1st column can be special or not
-
+        #rows = rows[:1]
         result = []
         for row in rows:
             res_row = {row[0].value: {}}
@@ -124,11 +119,6 @@ class TableProcessor:
             for index, column in enumerate(header[1:]):
                 #correction shift of index
                 index += 1
-                #adding index of each field and its value with escaped quotes if there are
-                #res_row[row[0].value].update({column: str(row[index].value).replace('"', r'\"')})
-                #DELETE: prev line replaced with this
-                #Delete: column_value = int(row[index]) if row[index].ctype == 2 and excel_data_file.format_map[excel_data_file.xf_list[excel_data_file.sheet_by_name(table_info.sheet_name).cell(1,9).xf_index].format_key]
-
                 res_row[row[0].value].update({column: row[index].value})
             result.append(res_row)
         return result
@@ -138,7 +128,6 @@ class CriterionProcessor:
     @abstractmethod
     def get_criterion_values(self):
         """
-
         :return: { alternative_name: criterion_value }
         """
         raise NotImplementedError
@@ -148,33 +137,25 @@ class CriterionRequestValueProcessor(CriterionProcessor):
         """
         criterion is file with rules (beginning of the request json that show Jarik)
         """
-
         self.criterion_file_path = os.path.join(os.path.dirname(__file__), criterion_file_path).replace('\\','/')
         self.table_info = table_info
 
     def get_criterion_values(self):
-
         alternatives = TableProcessor.to_dictionary(self.table_info)
         #extract dictionary of values of alternatives
-        alternatives = [list(q.values())[0] for q in alternatives]
-        # for q in alternatives:
-        #     for a in q:
-        #         k.append(q[a])
-
-
+        alternatives_keys = [list(q.keys())[0] for q in alternatives]# list(alternatives[0].keys())[0]
+        alternatives_values = [list(q.values())[0] for q in alternatives]
         request_json_dict = {}
         with open(self.criterion_file_path, 'r', encoding="utf8") as criterion_file:
             request_json_dict = json.load(criterion_file)
-        request_json_dict.update({RequestKeys.ALTERNATIVES : alternatives})
+        request_json_dict.update({RequestKeys.ALTERNATIVES : alternatives_values})
 
         #response = requests.post(URL, headers={"user-token": USER_TOKEN}, data= json.dumps(request_json_dict, ))
-        response = requests.post(URL, headers={"user-token": USER_TOKEN},
+        response = requests.put(URL, headers={"user-token": USER_TOKEN},
                       data={"ws_job[ws_method_id]": 29, "ws_job[input]": json.dumps(request_json_dict)})
         response = json.loads(response.content)
-        print("jjdjdj")
-        #TODO:j
-        # parse criterion value from request
-        raise NotImplementedError
+        criterion_values = [alternative_reply['generalized criterion'] for alternative_reply in json.loads(response['output'])]
+        return dict(zip(alternatives_keys, criterion_values))
 
 
 class WeightedCriterionProcessor(CriterionProcessor):
@@ -182,7 +163,6 @@ class WeightedCriterionProcessor(CriterionProcessor):
         self.table_info = table_info
 
     def get_criterion_values(self):
-        # header = TableProcessor.
         res = {}
         alternatives = TableProcessor.to_dictionary(self.table_info)
         optimization_info = TableProcessor.get_optimization_info(table_info)
@@ -213,8 +193,6 @@ class WeightedCriterionProcessor(CriterionProcessor):
         return (value-min)/(max-min)
 
 
-        raise NotImplementedError
-
 class ProcessedAlternative:
     def __init__(self, alternative, criterion_value):
         self.alternative = alternative
@@ -232,13 +210,7 @@ class CriterionWorker:
         :param alternatives_with_criterions: [(alternative, criterion_value),..]
         :return: (alternative, criterion_value) . If there are several maxes take 1st
         """
-        #return max(alternatives_with_criterion, key= lambda x:#alternatives_with_criterion)
         return alternatives_with_criterions[max(alternatives_with_criterions, key=lambda x: alternatives_with_criterions[x])]
-        #Delete:j
-        # for alternative_with_criterion in alternatives_with_criterions:
-        #     #TODO: забил. Not finished
-        #     pass
-
 
     def find_max_criterions_sum(self, tables):
         """
@@ -252,6 +224,91 @@ class CriterionWorker:
         max_criterions_sum = reduce((lambda x,y:x+y), maxes)
         return  max_criterions_sum
 
+    def _move_windows(self, windows_movable, list_of_tables, windows_starts, windows_ends, window_size=3):
+        for table_index, table in enumerate(list_of_tables):
+            table_length = len(table)
+            if windows_starts[table_index] + window_size < table_length:
+                windows_ends[table_index] += 1
+                windows_starts[table_index] += 1
+            else:
+                windows_movable[table_index] = False
+
+    def _make_combinations(self, criterions_sums, windows_starts, windows_ends, chain_of_alternatives, accumulated_sum, list_of_sorted_tables, curr_table_index):
+        """
+
+        :param windows_starts:
+        :param windows_ends:
+        :param criterions_sums:
+        :param chain_of_alternatives:
+        :param accumulated_sum:
+        :param list_of_sorted_tables: [ [(alternative_key, criterion_value)],[..  ] ]
+        :param curr_table_index:
+        :return:
+        """
+        if curr_table_index >= len(list_of_sorted_tables):
+            #create copy
+            criterions_sums.append((list(chain_of_alternatives), accumulated_sum))
+            return
+        curr_table = list_of_sorted_tables[curr_table_index]
+        start_index = windows_starts[curr_table_index]
+        curr_alternative_index = start_index
+        end_index = windows_ends[curr_table_index]
+        while curr_alternative_index <= end_index:
+            chain_of_alternatives.append(curr_table[curr_alternative_index])
+            #adding criterion value of curr alternative
+            alternative_criterion_value = curr_table[curr_alternative_index][1]
+            accumulated_sum += alternative_criterion_value
+            self._make_combinations(criterions_sums, windows_starts, windows_ends, chain_of_alternatives, accumulated_sum, list_of_sorted_tables, curr_table_index + 1)
+            chain_of_alternatives.pop()
+            accumulated_sum -= alternative_criterion_value
+            curr_alternative_index += 1
+
+    def make_combinations(self, list_of_sorted_tables, windows_starts, windows_ends):
+        """
+        Creates all possible combinations and calculates criterion values
+        :param list_of_sorted_tables:
+        :param windows_starts:
+        :param windows_ends:
+        :return:
+        """
+        criterions_sums = []
+        self._make_combinations(criterions_sums, windows_starts, windows_ends, [], 0, list_of_sorted_tables, 0)
+        return criterions_sums
+
+    def get_nearest_sums(self, list_of_tables, percents, required_output_quantity=3, window_size=3):
+###################WORKING ON!!!!!!!!!############################
+        windows_starts = [0]*len(list_of_tables)
+        windows_ends = [len(table)-1 if len(table) < window_size else window_size - 1 for table in list_of_tables]
+        windows_movable = [True]*len(list_of_tables)
+        #sort all tables by criterion values
+        sorted_tables_by_criterion_values = []
+        for table in list_of_tables:
+            sorted_tables_by_criterion_values.append(sorted(table.items(), key=lambda x: x[1], reverse=True))
+        #max_criterions_sum = self.find_max_criterions_sum(list_of_tables)
+        max_criterions_sum = reduce(lambda x,y: x+y, [table[0][1] for table in sorted_tables_by_criterion_values])
+        criterions_sums = []
+        #while at least any window is movable and not all criterions_sums found
+        while reduce(lambda x,y:x or y, windows_movable) and len(criterions_sums) < required_output_quantity:
+            #all combinations within windows
+            curr_criterions_sums = self.make_combinations(sorted_tables_by_criterion_values, windows_starts, windows_ends)
+            curr_criterions_sums = list(filter(lambda x: x[1]<= percents/100 * max_criterions_sum, curr_criterions_sums))
+            #sort decreasingly
+            curr_criterions_sums.sort(key=lambda x: x[1], reverse=True)
+            criterions_sums.extend(curr_criterions_sums)
+            self._move_windows(windows_movable, list_of_tables, windows_starts, windows_ends, window_size)
+        return criterions_sums[:required_output_quantity]
+
+    def get_criterion_sums_lower_last(self, list_of_tables, output_quantity, percents):
+        """
+        Searching nearest to 80% variants of list of alternatives (1 alternative from each table)
+        :param percents_edge: 80% or other value
+        :param tables:
+        :return: [ [(alternative1, criterion_value), (alternative2, criterion_value2),..], several more lists as previous]
+        """
+        res = self.get_nearest_sums(list_of_tables,percents, output_quantity)
+        return res
+
+###################WORKING ON!!!!!!!!!############################
     #TODO: Change dict_of_tables to list
     def recursion(self, criterions_sums, chain_of_indices, accumulated_sum, list_of_tables, curr_table_index):
         """
@@ -305,22 +362,24 @@ class CriterionWorker:
 if __name__ == '__main__':
     criterion_values = []
 
+    for table_info in Config.WEIGHTED_SUM_TABLES:
+        processor = WeightedCriterionProcessor(table_info)
+        criterion_values.append(processor.get_criterion_values())
+
     for table_and_criterion in Config.REQUEST_TABLES_WITH_CRITERION:
         table_info = table_and_criterion.get("data_table_info")
         criterion_file_path = table_and_criterion.get("criterion_file_path")
         processor = CriterionRequestValueProcessor(criterion_file_path, table_info)
         criterion_values.append(processor.get_criterion_values())
 
-    for table_info in Config.WEIGHTED_SUM_TABLES:
-        processor = WeightedCriterionProcessor(table_info)
-        criterion_values.append(processor.get_criterion_values())
 
-    #CriterionWorker().find_max_criterions_sum()
+
+    # CriterionWorker().find_max_criterions_sum()
     # CriterionWorker().get_criterion_sums_lower()
-    #CriterionWorker().get_all_criterions_sums(criterion_values)
-    max_sum = CriterionWorker().find_max_criterions_sum(criterion_values)
-
-
+    result = CriterionWorker().get_criterion_sums_lower_last(criterion_values, 3, 80)
+    # CriterionWorker().get_all_criterions_sums(criterion_values)
+    # max_sum = CriterionWorker().find_max_criterions_sum(criterion_values)
+    print("The End.")
 
 
 
