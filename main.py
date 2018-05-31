@@ -14,6 +14,9 @@ URL = "http://ws-dss.com/ws_jobs/3522.json"
 USER_TOKEN = "R1_bjpEvykBQfeBCyBky"
 
 class RequestKeys:
+    """
+    Keys for json to be sent to the server.
+    """
     FUZZY_SETS = "fuzzy_sets"
     CRITERIONS = "criterions"
     ALTERNATIVES = "alternatives"
@@ -31,6 +34,9 @@ class Optimization:
 
 
 class TableProcessor:
+    """
+    Provides method to get info from excel tables: header, data rows, optimization info, certain rows
+    """
     table_info_to_sheet = {}
 
     @staticmethod
@@ -126,6 +132,9 @@ class TableProcessor:
 
 
 class CriterionProcessor:
+    """
+    Base class for other criterion processors - CriterionRequestValueProcessor, WeightedCriterionProcessor
+    """
     @abstractmethod
     def get_criterion_values(self):
         """
@@ -134,6 +143,9 @@ class CriterionProcessor:
         raise NotImplementedError
 
 class CriterionRequestValueProcessor(CriterionProcessor):
+    """
+    Calculates criterion values for the whole table via sending requests to the server configured json
+    """
     def __init__(self, criterion_file_path, table_info):
         """
         criterion is file with rules (beginning of the request json that show Jarik)
@@ -160,6 +172,9 @@ class CriterionRequestValueProcessor(CriterionProcessor):
 
 
 class WeightedCriterionProcessor(CriterionProcessor):
+    """
+    Calculates criterion values for the whole table according weighted sum formula
+    """
     def __init__(self, table_info):
         self.table_info = table_info
 
@@ -194,13 +209,16 @@ class WeightedCriterionProcessor(CriterionProcessor):
         return (value-min)/(max-min)
 
 
+#Not used
 class ProcessedAlternative:
     def __init__(self, alternative, criterion_value):
         self.alternative = alternative
         self.criterion_value = criterion_value
 
 class CriterionWorker:
-
+    """
+    Process calculated criterion workers
+    """
     def extract_dict_value(self, dict):
         for key, val in enumerate(dict):
             return val

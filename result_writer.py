@@ -2,11 +2,9 @@ import xlsxwriter
 
 
 class ResultWriter:
-    # Create a workbook and add a worksheet.
-
     @staticmethod
     def write_to_excel(table_names, result):
-        workbook = xlsxwriter.Workbook('Expenses01.xlsx')
+        workbook = xlsxwriter.Workbook('Results.xlsx')
         worksheet = workbook.add_worksheet("Results")
         for index, t_name in enumerate(table_names):
             worksheet.write(0, index, t_name)
